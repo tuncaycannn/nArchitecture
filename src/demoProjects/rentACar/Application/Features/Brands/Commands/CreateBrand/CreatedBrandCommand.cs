@@ -1,0 +1,39 @@
+﻿using Application.Features.Brands.Dtos;
+using Application.Features.Brands.Rules;
+using Application.Services.Repositories;
+using AutoMapper;
+using Domain.Entities;
+using MediatR;
+
+namespace Application.Features.Brands.Commands.CreateBrand
+{
+    public class CreatedBrandCommand : IRequest<CreatedBrandDto>
+    {
+        public string Name { get; set; }
+
+        public class CreatedBrandCommandHandler : IRequestHandler<CreatedBrandCommand, CreatedBrandDto>
+        {
+            private readonly BrandBusinessRules _brandBusinessRules;
+            private readonly IBrandRepository _brandRepository;
+            private readonly IMapper _mapper;
+
+            public CreatedBrandCommandHandler(IBrandRepository brandRepository, IMapper mapper, BrandBusinessRules brandBusinessRules)
+            {
+                _brandRepository = brandRepository;
+                _mapper = mapper;
+                _brandBusinessRules = brandBusinessRules;
+            }
+
+            public async Task<CreatedBrandDto> Handle(CreatedBrandCommand request, CancellationToken cancellationToken)
+            {
+                await _brandBusinessRules.BrandNameCanNotBeDuplicatedWhenInserted(request.Name);
+
+                Brand mappedBrand = _mapper.Map<Brand>(request);
+                Brand createdBrand = await _brandRepository.AddAsync(mappedBrand);
+                CreatedBrandDto mappedBrandDto = _mapper.Map<CreatedBrandDto>(createdBrand);
+
+                return mappedBrandDto;
+            }
+        }
+    }
+}
